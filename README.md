@@ -18,6 +18,7 @@ verilator-build/
 
 ```bash
 ./build-verilator-docker.sh
+./build-verilator-docker.sh --help
 ```
 
 If `works/verilator` does not exist yet, the script clones `https://github.com/verilator/verilator.git` automatically.
@@ -59,6 +60,7 @@ Install the completed build with:
 
 ```bash
 ./install-local.sh
+./install-local.sh --help
 ```
 
 Or point it at a specific build output:
@@ -84,6 +86,6 @@ Make sure `~/.local/bin` is on your `PATH`.
 
 - Current status: the Docker image build was validated successfully, but the first full Verilator build run was interrupted before completion.
 - Safe restart: rerun `./build-verilator-docker.sh` and it will start a fresh container build flow.
-- Output behavior: the container removes and recreates `works/release` only after `make install` completes, so an interrupted run should not leave a partial staged install there.
+- Output behavior: the container clears and repopulates `works/release` only after `make install` completes, so an interrupted run should not leave a partial staged install there.
 - To continue later with tests enabled, run `./build-verilator-docker.sh test`.
 - If you want longer developer-style coverage later, run `CONFIGURE_ARGS="--enable-longtests" ./build-verilator-docker.sh test`.

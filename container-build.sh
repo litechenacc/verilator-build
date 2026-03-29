@@ -31,8 +31,10 @@ fi
 
 make install DESTDIR="${BUILD_ROOT}/stage"
 
-rm -rf "${OUTPUT_DIR}"
 mkdir -p "${OUTPUT_DIR}"
+shopt -s dotglob nullglob
+rm -rf -- "${OUTPUT_DIR}"/*
+shopt -u dotglob nullglob
 cp -a "${BUILD_ROOT}/stage${INSTALL_PREFIX}/." "${OUTPUT_DIR}/"
 
 printf 'Build complete. Installed files are in %s\n' "${OUTPUT_DIR}"

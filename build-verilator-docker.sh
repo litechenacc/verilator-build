@@ -12,6 +12,32 @@ VERILATOR_REPO_URL=${VERILATOR_REPO_URL:-https://github.com/verilator/verilator.
 VERILATOR_REF=${VERILATOR_REF:-}
 INSTALL_SCRIPT_URL=${INSTALL_SCRIPT_URL:-}
 
+show_help() {
+  cat <<EOF
+Usage: ./build-verilator-docker.sh [test] [--help] [-- <container args>]
+
+Build Verilator inside Docker and stage the installed tree into a local release directory.
+
+Environment overrides:
+  WORKS_DIR           Parent directory for default source/output paths
+  SOURCE_DIR          Existing Verilator checkout to build
+  OUTPUT_DIR          Destination directory for installed artifacts
+  IMAGE_TAG           Docker image tag to build and run
+  VERILATOR_REPO_URL  Git URL used when auto-cloning Verilator
+  VERILATOR_REF       Optional branch or tag to clone
+  INSTALL_PREFIX      Prefix used inside the container build
+  CONFIGURE_ARGS      Extra arguments passed to ./configure
+  MAKEFLAGS           Flags passed to make
+  INSTALL_SCRIPT_URL  Raw URL printed for curl-based local install
+
+Examples:
+  ./build-verilator-docker.sh
+  ./build-verilator-docker.sh test
+  WORKS_DIR="\$HOME/tmp/verilator-work" ./build-verilator-docker.sh
+  SOURCE_DIR="\$HOME/src/verilator" OUTPUT_DIR="\$HOME/out/verilator" ./build-verilator-docker.sh
+EOF
+}
+
 clone_verilator() {
   mkdir -p "${WORKS_DIR}"
   if [[ -n "${VERILATOR_REF}" ]]; then
@@ -41,6 +67,30 @@ github_raw_install_url() {
   printf 'https://raw.githubusercontent.com/%s/%s/main/install-local.sh\n' "${owner}" "${repo}"
 }
 
+extra_args=()
+
+while [[ $# -gt 0 ]]; do
+  case "$1" in
+    -h|--help)
+      show_help
+      exit 0
+      ;;
+    test)
+      RUN_TESTS=1
+      shift
+      ;;
+    --)
+      shift
+      extra_args+=("$@")
+      break
+      ;;
+    *)
+      extra_args+=("$1")
+      shift
+      ;;
+  esac
+done
+
 if [[ ! -d "${SOURCE_DIR}" ]]; then
   printf 'Cloning Verilator into %s\n' "${SOURCE_DIR}"
   clone_verilator
@@ -50,11 +100,6 @@ elif [[ ! -f "${SOURCE_DIR}/configure.ac" ]]; then
 fi
 
 mkdir -p "${OUTPUT_DIR}"
-
-if [[ "${1:-}" == "test" ]]; then
-  RUN_TESTS=1
-  shift
-fi
 
 docker build \
   -t "${IMAGE_TAG}" \
@@ -72,7 +117,7 @@ docker run --rm -t \
   -e MAKEFLAGS="${MAKEFLAGS:--j$(nproc)}" \
   -v "${SOURCE_DIR}:/workspace/source:ro" \
   -v "${OUTPUT_DIR}:/workspace/release" \
-  "${IMAGE_TAG}" "$@"
+  "${IMAGE_TAG}" "${extra_args[@]}"
 
 printf '\nInstall to ~/.local with:\n'
 printf '  "%s/install-local.sh" "%s"\n' "${PROJECT_ROOT}" "${OUTPUT_DIR}"
